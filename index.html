@@ -148,11 +148,87 @@ body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
 .etq-label.lg  .etq-price { font-size:52pt; }
 .etq-label.xl  .etq-price { font-size:68pt; }
 
-/* ── DARK MODE ── */
-.dark body { background: #0f1117; color: #e2e2e9; }
-.dark #sidebar { background: #0a0d16; }
-.dark #mainHeader { background: #0a0d16; border-color: rgba(255,255,255,0.05); }
-.dark .card { background: #151b2c; border-color: rgba(255,255,255,0.06); }
+/* ════════════════════════════════════════════
+   DARK MODE — overrides completos
+════════════════════════════════════════════ */
+
+/* Fondo general */
+html.dark body,
+html.dark #appShell { background: #0f1117 !important; color: #e2e2e9; }
+
+/* Sidebar */
+html.dark #sidebar { background: #0a0d16 !important; }
+
+/* Header superior */
+html.dark #mainHeader { background: rgba(10,13,22,0.95) !important; border-color: rgba(255,255,255,0.05) !important; }
+
+/* Vistas — fondo de contenido */
+html.dark .bg-surface,
+html.dark [class*="bg-surface"]:not([class*="sidebar"]) { background-color: #0f1117 !important; }
+html.dark .bg-white { background-color: #1a1b23 !important; }
+
+/* Tarjetas (cards en config, caja, etc.) */
+html.dark .rounded-2xl.border,
+html.dark .rounded-2xl.shadow-sm,
+html.dark .bg-white.rounded-2xl {
+  background-color: #1a1b23 !important;
+  border-color: rgba(255,255,255,0.07) !important;
+}
+
+/* Inputs, selects, textareas */
+html.dark input:not(#lockInput):not(#empPinInput):not(#cfgEmpPin),
+html.dark textarea,
+html.dark select {
+  background-color: #24252f !important;
+  color: #e2e2e9 !important;
+  border-color: rgba(255,255,255,0.1) !important;
+}
+html.dark input::placeholder,
+html.dark textarea::placeholder { color: #555870 !important; }
+
+/* Texto principal */
+html.dark .text-on-surface { color: #e2e2e9 !important; }
+html.dark .text-outline { color: #8e9099 !important; }
+html.dark .text-on-surface-variant { color: #c4c6d0 !important; }
+html.dark .text-gray-500 { color: #8e9099 !important; }
+html.dark .text-gray-600 { color: #737783 !important; }
+html.dark .text-gray-700 { color: #636370 !important; }
+
+/* Bordes */
+html.dark .border-surface-highest,
+html.dark .border-surface-high,
+html.dark [class*="border-surface"] { border-color: rgba(255,255,255,0.08) !important; }
+
+/* Hover de filas de tabla */
+html.dark .cart-row:hover { background: rgba(255,255,255,0.04) !important; }
+html.dark .inv-row:hover  { background: rgba(255,255,255,0.04) !important; }
+
+/* Fondos de superficie anidados */
+html.dark .bg-surface-container-low { background-color: #1a1b23 !important; }
+html.dark .bg-surface-container { background-color: #1e1f28 !important; }
+html.dark .bg-surface-container-high,
+html.dark .bg-surface-container-highest { background-color: #24252f !important; }
+
+/* Modales */
+html.dark .modal-box { background: #1a1b23 !important; color: #e2e2e9 !important; }
+
+/* AI Panel */
+html.dark #aiPanel { background: #1a1b23 !important; border-color: rgba(255,255,255,0.08) !important; }
+html.dark .ai-msg.bot { background: #24252f !important; color: #e2e2e9 !important; }
+
+/* Divisores */
+html.dark hr,
+html.dark [class*="divide"] { border-color: rgba(255,255,255,0.07) !important; }
+
+/* Hover nav sidebar */
+html.dark .nav-item:not(.active):hover { background: rgba(255,255,255,0.06) !important; }
+
+/* Botones ghost / secundarios */
+html.dark .bg-surface-high { background-color: #24252f !important; }
+
+/* Secciones de stats / cajas de resumen */
+html.dark .shadow-sm { box-shadow: 0 1px 4px rgba(0,0,0,0.6) !important; }
+
 </style>
 </head>
 <body class="bg-surface text-on-surface">
@@ -1631,12 +1707,22 @@ function startClock() {
 }
 
 // ── DARK MODE ─────────────────────────────────
-let isDark = false;
+let isDark = localStorage.getItem('zync_dark') === '1';
+
+function applyDark() {
+  document.documentElement.classList.toggle('dark', isDark);
+  const ico = document.getElementById('darkIcon');
+  if (ico) ico.textContent = isDark ? 'light_mode' : 'dark_mode';
+}
+
 function toggleDark() {
   isDark = !isDark;
-  document.documentElement.classList.toggle('dark', isDark);
-  document.getElementById('darkIcon').textContent = isDark ? 'light_mode' : 'dark_mode';
+  localStorage.setItem('zync_dark', isDark ? '1' : '0');
+  applyDark();
 }
+
+// Aplicar preferencia guardada al cargar la página
+applyDark();
 
 // ── TOAST ─────────────────────────────────────
 function toast(msg, type='info') {
