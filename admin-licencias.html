@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ZYNC — Panel Admin de Licencias</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<style>
+* { box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; background: #06060a; color: #e2e2e9; min-height: 100vh; }
+.mono { font-family: 'JetBrains Mono', monospace; }
+.material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; vertical-align: middle; }
+.fill-icon { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+
+.glass {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(12px);
+}
+.gold { color: #D4AF37; }
+.gold-bg { background: #D4AF37; color: #06060a; }
+.scan-line {
+  position: fixed; height: 1px; width: 100%;
+  background: linear-gradient(90deg, transparent, rgba(212,175,55,0.2), transparent);
+  animation: scan 5s linear infinite; pointer-events: none; z-index: 0;
+}
+@keyframes scan { 0%{top:0} 100%{top:100%} }
+
+.badge-pro { background: #D4AF37; color: #06060a; }
+.badge-demo { background: rgba(62,106,0,0.3); color: #b9f474; border: 1px solid #3e6a00; }
+.badge-inactiva { background: rgba(186,26,26,0.2); color: #ff8a80; border: 1px solid #ba1a1a; }
+
+.modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center; }
+.modal-bg.open { display: flex; }
+
+#toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 700; z-index: 999; display: none; }
+</style>
+</head>
+<body>
+<div class="scan-line"></div>
+
+<!-- Glow BG -->
+<div class="fixed top-1/4 right-1/4 w-96 h-96 rounded-full pointer-events-none" style="background:#D4AF37;filter:blur(200px);opacity:0.04;"></div>
+<div class="fixed bottom-1/4 left-1/4 w-96 h-96 rounded-full pointer-events-none" style="background:#00387e;filter:blur(200px);opacity:0.06;"></div>
+
+<!-- ── ADMIN LOGIN ── -->
+<div id="adminLogin" class="fixed inset-0 z-50 flex items-center justify-center px-4" style="background:#06060a">
+  <div class="glass rounded-2xl w-full max-w-sm p-8 relative z-10">
+    <div class="flex flex-col items-center mb-8">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+           style="background:rgba(212,175,55,0.1);border:1px solid rgba(212,175,55,0.25)">
+        <span class="material-symbols-outlined fill-icon text-3xl" style="color:#D4AF37">admin_panel_settings</span>
+      </div>
+      <h1 class="text-xl font-black text-white">Panel de Licencias</h1>
+      <p class="text-xs font-bold uppercase tracking-widest mt-1" style="color:#D4AF37">ZYNC · A2K Digital Studio</p>
+    </div>
+    <div class="flex flex-col gap-3">
+      <label class="flex flex-col gap-1">
+        <span class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Usuario Admin</span>
+        <input id="loginUser" type="text" placeholder="admin"
+          class="mono px-4 py-3 rounded-xl text-sm outline-none"
+          style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#fff"
+          onkeydown="if(event.key==='Enter')adminLogin()"/>
+      </label>
+      <label class="flex flex-col gap-1">
+        <span class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Contraseña</span>
+        <input id="loginPass" type="password" placeholder="••••••"
+          class="mono px-4 py-3 rounded-xl text-sm outline-none"
+          style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#fff"
+          onkeydown="if(event.key==='Enter')adminLogin()"/>
+      </label>
+      <div id="loginError" class="hidden text-red-400 text-xs font-bold text-center py-1"></div>
+      <button onclick="adminLogin()" class="py-3 rounded-xl font-black text-sm uppercase tracking-wider mt-2 transition-all active:scale-95"
+              style="background:#D4AF37;color:#06060a">
+        Ingresar al Panel
+      </button>
+    </div>
+    <p class="text-[10px] text-center text-gray-600 mt-5">Default: admin / zync2026</p>
+    <div class="mt-4 text-center">
+      <a href="index.html" class="text-[10px]" style="color:#D4AF37;opacity:0.5">← Volver al Sistema</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN PANEL ── -->
+<div id="mainPanel" class="hidden min-h-screen">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-40 flex items-center justify-between px-8 h-14"
+          style="background:rgba(6,6,10,0.9);border-bottom:1px solid rgba(255,255,255,0.06);backdrop-filter:blur(12px)">
+    <div class="flex items-center gap-3">
+      <span class="material-symbols-outlined fill-icon gold text-xl">bolt</span>
+      <div>
+        <span class="font-black text-white text-sm">ZYNC ELECTRONICS</span>
+        <span class="text-gray-500 text-xs ml-2">· Panel Admin de Licencias</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-4">
+      <span class="text-xs text-gray-500 mono" id="headerTime"></span>
+      <button onclick="adminLogout()"
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold"
+        style="background:rgba(186,26,26,0.15);color:#ff8a80;border:1px solid rgba(186,26,26,0.3)">
+        <span class="material-symbols-outlined text-sm">logout</span>
+        Salir
+      </button>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-8 py-8">
+
+    <!-- Stats Row -->
+    <div class="grid grid-cols-4 gap-4 mb-8">
+      <div class="glass rounded-2xl p-5">
+        <p class="text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1">Total Licencias</p>
+        <p id="statTotal" class="text-3xl font-black text-white">0</p>
+      </div>
+      <div class="glass rounded-2xl p-5">
+        <p class="text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1">Licencias PRO</p>
+        <p id="statPro" class="text-3xl font-black" style="color:#D4AF37">0</p>
+      </div>
+      <div class="glass rounded-2xl p-5">
+        <p class="text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1">Licencias DEMO</p>
+        <p id="statDemo" class="text-3xl font-black" style="color:#b9f474">0</p>
+      </div>
+      <div class="glass rounded-2xl p-5">
+        <p class="text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1">Inactivas</p>
+        <p id="statInactive" class="text-3xl font-black" style="color:#ff8a80">0</p>
+      </div>
+    </div>
+
+    <!-- Actions bar -->
+    <div class="flex items-center justify-between mb-5">
+      <div class="flex items-center gap-3">
+        <input id="searchLic" type="text" placeholder="Buscar por código, nombre o dispositivo..."
+          class="mono px-4 py-2.5 rounded-xl text-sm outline-none w-72"
+          style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:#fff"
+          oninput="renderLicenses()"/>
+        <select id="filterType" onchange="renderLicenses()"
+          class="px-4 py-2.5 rounded-xl text-sm outline-none"
+          style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:#fff">
+          <option value="">Todos los tipos</option>
+          <option value="PRO">PRO</option>
+          <option value="DEMO">DEMO</option>
+        </select>
+        <select id="filterStatus" onchange="renderLicenses()"
+          class="px-4 py-2.5 rounded-xl text-sm outline-none"
+          style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:#fff">
+          <option value="">Todos los estados</option>
+          <option value="Activa">Activa</option>
+          <option value="Inactiva">Inactiva</option>
+        </select>
+      </div>
+      <div class="flex gap-3">
+        <button onclick="openGenerateModal()"
+          class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95"
+          style="background:rgba(212,175,55,0.1);color:#D4AF37;border:1px solid rgba(212,175,55,0.25)">
+          <span class="material-symbols-outlined text-base">auto_awesome</span>
+          Generar Código
+        </button>
+        <button onclick="openAddModal()"
+          class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95"
+          style="background:#D4AF37;color:#06060a">
+          <span class="material-symbols-outlined text-base fill-icon">add_circle</span>
+          Nueva Licencia
+        </button>
+      </div>
+    </div>
+
+    <!-- Licencias embebidas (solo lectura) -->
+    <div class="mb-6">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="material-symbols-outlined text-base fill-icon" style="color:#D4AF37">lock</span>
+        <h2 class="text-xs font-black uppercase tracking-widest text-gray-400">Licencias del Sistema (Solo Lectura)</h2>
+      </div>
+      <div class="glass rounded-2xl overflow-hidden">
+        <table class="w-full text-xs">
+          <thead>
+            <tr class="text-[10px] font-black uppercase tracking-widest text-gray-500 border-b" style="border-color:rgba(255,255,255,0.06)">
+              <th class="px-5 py-3 text-left">Código</th>
+              <th class="px-4 py-3 text-left">Nombre</th>
+              <th class="px-4 py-3 text-center">Tipo</th>
+              <th class="px-4 py-3 text-center">Device ID</th>
+              <th class="px-4 py-3 text-center">Vencimiento</th>
+              <th class="px-4 py-3 text-center">Estado</th>
+            </tr>
+          </thead>
+          <tbody id="embeddedBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Licencias custom -->
+    <div>
+      <div class="flex items-center gap-2 mb-3">
+        <span class="material-symbols-outlined text-base fill-icon" style="color:#3e6a00">key</span>
+        <h2 class="text-xs font-black uppercase tracking-widest text-gray-400">Licencias Personalizadas</h2>
+      </div>
+      <div class="glass rounded-2xl overflow-hidden">
+        <table class="w-full text-xs">
+          <thead>
+            <tr class="text-[10px] font-black uppercase tracking-widest text-gray-500 border-b" style="border-color:rgba(255,255,255,0.06)">
+              <th class="px-5 py-3 text-left">Código</th>
+              <th class="px-4 py-3 text-left">Nombre / Cliente</th>
+              <th class="px-4 py-3 text-center">Tipo</th>
+              <th class="px-4 py-3 text-center">Device ID</th>
+              <th class="px-4 py-3 text-center">Vencimiento</th>
+              <th class="px-4 py-3 text-center">Estado</th>
+              <th class="px-4 py-3 text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="licensesBody"></tbody>
+        </table>
+        <div id="licensesEmpty" class="py-12 text-center text-gray-600 hidden">
+          <span class="material-symbols-outlined text-4xl block mb-2 opacity-30">key_off</span>
+          <p class="text-xs font-bold uppercase tracking-wider">No hay licencias personalizadas</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Log section -->
+    <div class="mt-8">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-base text-gray-500">history</span>
+          <h2 class="text-xs font-black uppercase tracking-widest text-gray-400">Log de Activaciones</h2>
+        </div>
+        <button onclick="clearLog()" class="text-[10px] text-gray-600 hover:text-red-400 font-bold uppercase tracking-wider">
+          Limpiar Log
+        </button>
+      </div>
+      <div class="glass rounded-2xl p-4 max-h-48 overflow-y-auto" id="logContainer">
+        <div id="logBody" class="flex flex-col gap-1"></div>
+        <p id="logEmpty" class="text-center text-gray-600 text-xs py-4">Sin actividades registradas</p>
+      </div>
+    </div>
+
+    <p class="text-center text-gray-700 text-[10px] mt-8">© 2026 A2K Digital Studio · ZYNC Electronics · Panel Admin v2.0</p>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Nueva/Editar Licencia ═══ -->
+<div id="modalAdd" class="modal-bg">
+  <div class="rounded-2xl w-full max-w-md mx-4 p-8" style="background:#0f1117;border:1px solid rgba(255,255,255,0.1)">
+    <div class="flex justify-between items-center mb-6">
+      <h3 id="modalAddTitle" class="text-lg font-black text-white">Nueva Licencia</h3>
+      <button onclick="closeModal('modalAdd')" class="text-gray-500 hover:text-white">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <input type="hidden" id="editId"/>
+    <div class="flex flex-col gap-3">
+      <label class="flex flex-col gap-1">
+        <span class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Código de Licencia</span>
+        <input id="fCode" type="text" placeholder="ZYNC-XXXX-XXXX-XXXX"
+          class="mono px-4 py-3 rounded-xl text-sm outline-none uppercase tracking-widest"
+          style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#fff"/>
+      </label>
+      <div class="grid grid-cols-2 gap-3">
+        <label class="flex flex-col gap-1">
+          <span class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Tipo</span>
+          <select id="fType" class="px-4 py-3 rounded-xl text-sm outline-none"
+            style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#fff">
+            <option value="PRO">PRO</option>
+            <option value="DEMO">DEMO</option>
+          </select>
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Estado</span>
+          <select id="fStatus" class="px-4 py-3 rounded-xl text-sm outline-none"
+            style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#fff">
+            <option value="Activa">Activa</option>
+            <option value="Inactiva">Inactiva</option>
+          </select>
+        </label>
+      </div>
+      <label class="flex flex-col gap-1">
+        <span class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Nombre / Cliente</span>
+        <input id="fName" type="text" placeholder="Ej: Electrónica Pérez"
+          class="px-4 py-3 rounded-xl text-sm outline-none"
+          style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#fff"/>
+      </label>
+      <label class="flex flex-col gap-1">
+        <span class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Teléfono / Contacto</span>
+        <input id="fPhone" type="text" placeholder="04xx-xxx-xxxx"
+          class="px-4 py-3 rounded-xl text-sm outline-none"
+          style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#fff"/>
+      </label>
+      <label class="flex flex-col gap-1">
+        <span class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Device ID (vacío = universal)</span>
+        <input id="fDevice" type="text" placeholder="ABC-DEF-GHJ (opcional)"
+          class="mono px-4 py-3 rounded-xl text-sm outline-none uppercase"
+          style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#fff"/>
+      </label>
+      <label class="flex flex-col gap-1">
+        <span class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Fecha de Vencimiento (vacío = sin expiración)</span>
+        <input id="fExpiry" type="date"
+          class="px-4 py-3 rounded-xl text-sm outline-none"
+          style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#fff"/>
+      </label>
+      <label class="flex flex-col gap-1">
+        <span class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Notas internas</span>
+        <textarea id="fNotes" rows="2" class="px-4 py-3 rounded-xl text-sm outline-none resize-none"
+          style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#fff"></textarea>
+      </label>
+    </div>
+    <div class="flex gap-3 mt-6">
+      <button onclick="saveLicense()"
+        class="flex-1 py-3 rounded-xl font-black text-sm uppercase tracking-wider transition-all active:scale-95"
+        style="background:#D4AF37;color:#06060a">
+        Guardar Licencia
+      </button>
+      <button onclick="closeModal('modalAdd')"
+        class="px-6 py-3 rounded-xl font-bold text-sm text-gray-400 hover:text-white transition-all"
+        style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08)">
+        Cancelar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Generar Código ═══ -->
+<div id="modalGenerate" class="modal-bg">
+  <div class="rounded-2xl w-full max-w-sm mx-4 p-8" style="background:#0f1117;border:1px solid rgba(255,255,255,0.1)">
+    <div class="flex justify-between items-center mb-6">
+      <h3 class="text-lg font-black text-white">Generar Código</h3>
+      <button onclick="closeModal('modalGenerate')" class="text-gray-500 hover:text-white">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="flex flex-col gap-4">
+      <div class="flex gap-2">
+        <button onclick="setGenPrefix('ZYNC')" id="gPro" class="flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider"
+          style="background:#D4AF37;color:#06060a">PRO</button>
+        <button onclick="setGenPrefix('DEMO')" id="gDemo" class="flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider"
+          style="background:rgba(255,255,255,0.06);color:#fff;border:1px solid rgba(255,255,255,0.1)">DEMO</button>
+      </div>
+      <div class="rounded-2xl p-6 text-center" style="background:rgba(212,175,55,0.06);border:1px solid rgba(212,175,55,0.2)">
+        <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Código Generado</p>
+        <p id="genCode" class="mono text-2xl font-black" style="color:#D4AF37">—</p>
+      </div>
+      <button onclick="doGenerate()"
+        class="py-3 rounded-xl font-black text-sm uppercase tracking-wider transition-all active:scale-95"
+        style="background:rgba(255,255,255,0.06);color:#fff;border:1px solid rgba(255,255,255,0.1)">
+        <span class="material-symbols-outlined fill-icon text-base mr-1">refresh</span>
+        Regenerar
+      </button>
+      <button onclick="copyGenCode()"
+        class="py-3 rounded-xl font-black text-sm uppercase tracking-wider transition-all active:scale-95"
+        style="background:#D4AF37;color:#06060a">
+        <span class="material-symbols-outlined text-base mr-1">content_copy</span>
+        Copiar y Usar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ── DB (mismo prefijo que el sistema) ──────────
+const DB = {
+  get: k => { try { return JSON.parse(localStorage.getItem('zync_'+k)); } catch { return null; } },
+  set: (k,v) => localStorage.setItem('zync_'+k, JSON.stringify(v)),
+};
+
+// ── LICENCIAS EMBEBIDAS (mirror del sistema) ──
+const EMBEDDED = [
+  { code:'ZYNC-DEMO-2026-FREE', type:'DEMO', name:'Demo Pública', deviceId:'', expiresAt:'2026-12-31', status:'Activa' },
+  { code:'ZYNC-CWCJ-JH77-KTXX', type:'DEMO', name:'Demo Alternativa', deviceId:'', expiresAt:'2026-12-31', status:'Activa' },
+  { code:'ZYNC-PRO1-A2K0-2026', type:'PRO', name:'Licencia PRO Estándar', deviceId:'', expiresAt:null, status:'Activa' },
+  { code:'ZYNC-PRO2-ELEC-2026', type:'PRO', name:'Licencia PRO Electronics', deviceId:'', expiresAt:null, status:'Activa' },
+];
+
+// ── ADMIN AUTH ─────────────────────────────────
+const ADMIN_CREDS = { user: 'admin', pass: 'zync2026' };
+
+function adminLogin() {
+  const user = document.getElementById('loginUser').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  if (user === ADMIN_CREDS.user && pass === ADMIN_CREDS.pass) {
+    document.getElementById('adminLogin').style.display = 'none';
+    document.getElementById('mainPanel').classList.remove('hidden');
+    renderAll(); startClock();
+    addLog('Acceso al panel de administración');
+  } else {
+    const err = document.getElementById('loginError');
+    err.classList.remove('hidden');
+    err.textContent = 'Credenciales incorrectas';
+  }
+}
+
+function adminLogout() {
+  document.getElementById('adminLogin').style.display = 'flex';
+  document.getElementById('mainPanel').classList.add('hidden');
+}
+
+// ── CLOCK ──────────────────────────────────────
+function startClock() {
+  setInterval(() => {
+    document.getElementById('headerTime').textContent = new Date().toLocaleString('es-VE');
+  }, 1000);
+}
+
+// ── RENDER ─────────────────────────────────────
+function renderAll() {
+  renderEmbedded();
+  renderLicenses();
+  renderStats();
+  renderLog();
+}
+
+function renderEmbedded() {
+  const body = document.getElementById('embeddedBody');
+  body.innerHTML = EMBEDDED.map(l => `
+    <tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
+      <td class="px-5 py-3 mono font-bold" style="color:#D4AF37">${l.code}</td>
+      <td class="px-4 py-3 text-gray-300">${l.name}</td>
+      <td class="px-4 py-3 text-center">
+        <span class="px-2 py-0.5 rounded text-[9px] font-black ${l.type==='PRO'?'badge-pro':'badge-demo'}">${l.type}</span>
+      </td>
+      <td class="px-4 py-3 text-center mono text-gray-500 text-[10px]">${l.deviceId || 'Universal'}</td>
+      <td class="px-4 py-3 text-center text-gray-500 text-[10px]">${l.expiresAt || 'Sin expiración'}</td>
+      <td class="px-4 py-3 text-center">
+        <span class="px-2 py-0.5 rounded text-[9px] font-black badge-demo">Activa</span>
+      </td>
+    </tr>`).join('');
+}
+
+function renderLicenses() {
+  const lics = DB.get('licenses') || [];
+  const q = (document.getElementById('searchLic')?.value || '').toLowerCase();
+  const typeF = document.getElementById('filterType')?.value || '';
+  const statF = document.getElementById('filterStatus')?.value || '';
+
+  const filtered = lics.filter(l => {
+    const matchQ = !q || l.code.toLowerCase().includes(q) || l.name.toLowerCase().includes(q) || (l.deviceId||'').toLowerCase().includes(q);
+    const matchT = !typeF || l.type === typeF;
+    const matchS = !statF || l.status === statF;
+    return matchQ && matchT && matchS;
+  });
+
+  const body = document.getElementById('licensesBody');
+  const empty = document.getElementById('licensesEmpty');
+
+  if (!filtered.length) { body.innerHTML = ''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+
+  body.innerHTML = filtered.map(l => {
+    const expired = l.expiresAt && new Date(l.expiresAt) < new Date();
+    const badgeClass = l.status !== 'Activa' ? 'badge-inactiva' : expired ? 'badge-inactiva' : l.type==='PRO' ? 'badge-pro' : 'badge-demo';
+    const statusLabel = l.status !== 'Activa' ? 'Inactiva' : expired ? 'Expirada' : 'Activa';
+    return `<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
+      <td class="px-5 py-3 mono font-bold text-[11px]" style="color:#D4AF37">${l.code}</td>
+      <td class="px-4 py-3">
+        <p class="font-semibold text-gray-200 text-xs">${l.name}</p>
+        ${l.phone ? `<p class="text-[10px] text-gray-500">${l.phone}</p>` : ''}
+        ${l.notes ? `<p class="text-[10px] text-gray-600 italic">${l.notes}</p>` : ''}
+      </td>
+      <td class="px-4 py-3 text-center">
+        <span class="px-2 py-0.5 rounded text-[9px] font-black ${l.type==='PRO'?'badge-pro':'badge-demo'}">${l.type}</span>
+      </td>
+      <td class="px-4 py-3 text-center mono text-gray-500 text-[10px]">${l.deviceId || 'Universal'}</td>
+      <td class="px-4 py-3 text-center text-[10px] ${expired?'text-red-400':'text-gray-500'}">${l.expiresAt || 'Sin expiración'}</td>
+      <td class="px-4 py-3 text-center">
+        <span class="px-2 py-0.5 rounded text-[9px] font-black ${badgeClass}">${statusLabel}</span>
+      </td>
+      <td class="px-4 py-3 text-center">
+        <div class="flex gap-1 justify-center">
+          <button onclick="copyCode('${l.code}')" title="Copiar código"
+            class="p-1 rounded hover:bg-white/10 transition-colors">
+            <span class="material-symbols-outlined text-sm text-gray-400">content_copy</span>
+          </button>
+          <button onclick="toggleStatus('${l.id}')" title="${l.status==='Activa'?'Desactivar':'Activar'}"
+            class="p-1 rounded hover:bg-white/10 transition-colors">
+            <span class="material-symbols-outlined text-sm ${l.status==='Activa'?'text-red-400':'text-green-400'}">${l.status==='Activa'?'block':'check_circle'}</span>
+          </button>
+          <button onclick="editLicense('${l.id}')" title="Editar"
+            class="p-1 rounded hover:bg-white/10 transition-colors">
+            <span class="material-symbols-outlined text-sm text-blue-400">edit</span>
+          </button>
+          <button onclick="deleteLicense('${l.id}')" title="Eliminar"
+            class="p-1 rounded hover:bg-white/10 transition-colors">
+            <span class="material-symbols-outlined text-sm text-red-400">delete</span>
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderStats() {
+  const embedded = EMBEDDED;
+  const custom = DB.get('licenses') || [];
+  const all = [...embedded, ...custom];
+  document.getElementById('statTotal').textContent = all.length;
+  document.getElementById('statPro').textContent = all.filter(l=>l.type==='PRO').length;
+  document.getElementById('statDemo').textContent = all.filter(l=>l.type==='DEMO').length;
+  document.getElementById('statInactive').textContent = custom.filter(l=>l.status!=='Activa').length;
+}
+
+// ── CRUD ───────────────────────────────────────
+function openAddModal() {
+  document.getElementById('modalAddTitle').textContent = 'Nueva Licencia';
+  document.getElementById('editId').value = '';
+  ['fCode','fName','fPhone','fDevice','fExpiry','fNotes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fType').value = 'PRO';
+  document.getElementById('fStatus').value = 'Activa';
+  document.getElementById('modalAdd').classList.add('open');
+}
+
+function editLicense(id) {
+  const lics = DB.get('licenses') || [];
+  const l = lics.find(x => x.id == id);
+  if (!l) return;
+  document.getElementById('modalAddTitle').textContent = 'Editar Licencia';
+  document.getElementById('editId').value = l.id;
+  document.getElementById('fCode').value = l.code;
+  document.getElementById('fType').value = l.type;
+  document.getElementById('fStatus').value = l.status;
+  document.getElementById('fName').value = l.name;
+  document.getElementById('fPhone').value = l.phone || '';
+  document.getElementById('fDevice').value = l.deviceId || '';
+  document.getElementById('fExpiry').value = l.expiresAt || '';
+  document.getElementById('fNotes').value = l.notes || '';
+  document.getElementById('modalAdd').classList.add('open');
+}
+
+function saveLicense() {
+  const id = document.getElementById('editId').value;
+  const code = document.getElementById('fCode').value.trim().toUpperCase();
+  if (!code || code.length < 10) { showToast('Código inválido', 'error'); return; }
+
+  const lic = {
+    id: id || Date.now().toString(),
+    code,
+    type: document.getElementById('fType').value,
+    status: document.getElementById('fStatus').value,
+    name: document.getElementById('fName').value.trim() || 'Sin nombre',
+    phone: document.getElementById('fPhone').value.trim(),
+    deviceId: document.getElementById('fDevice').value.trim().toUpperCase(),
+    expiresAt: document.getElementById('fExpiry').value || null,
+    notes: document.getElementById('fNotes').value.trim(),
+    createdAt: new Date().toISOString(),
+  };
+
+  const lics = DB.get('licenses') || [];
+  const idx = lics.findIndex(l => l.id == lic.id);
+  if (idx >= 0) lics[idx] = lic; else lics.push(lic);
+  DB.set('licenses', lics);
+
+  closeModal('modalAdd');
+  renderAll();
+  addLog(`Licencia ${id ? 'editada' : 'creada'}: ${code} (${lic.type})`);
+  showToast(id ? 'Licencia actualizada' : 'Licencia creada', 'success');
+}
+
+function toggleStatus(id) {
+  const lics = DB.get('licenses') || [];
+  const idx = lics.findIndex(l => l.id == id);
+  if (idx < 0) return;
+  lics[idx].status = lics[idx].status === 'Activa' ? 'Inactiva' : 'Activa';
+  DB.set('licenses', lics);
+  renderAll();
+  addLog(`Licencia ${lics[idx].code} → ${lics[idx].status}`);
+  showToast(`Licencia ${lics[idx].status.toLowerCase()}`, 'info');
+}
+
+function deleteLicense(id) {
+  if (!confirm('¿Eliminar esta licencia permanentemente?')) return;
+  const lics = (DB.get('licenses')||[]);
+  const l = lics.find(x => x.id == id);
+  DB.set('licenses', lics.filter(x => x.id != id));
+  renderAll();
+  if (l) addLog(`Licencia eliminada: ${l.code}`);
+  showToast('Licencia eliminada', 'error');
+}
+
+function copyCode(code) {
+  navigator.clipboard.writeText(code).then(() => showToast('Código copiado: ' + code, 'success'));
+}
+
+// ── CODE GENERATOR ─────────────────────────────
+let genPrefix = 'ZYNC';
+function setGenPrefix(p) {
+  genPrefix = p;
+  document.getElementById('gPro').style.cssText = p==='ZYNC' ? 'background:#D4AF37;color:#06060a;flex:1;padding:8px;border-radius:12px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.05em' : 'background:rgba(255,255,255,0.06);color:#fff;border:1px solid rgba(255,255,255,0.1);flex:1;padding:8px;border-radius:12px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.05em';
+  document.getElementById('gDemo').style.cssText = p==='DEMO' ? 'background:#D4AF37;color:#06060a;flex:1;padding:8px;border-radius:12px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.05em' : 'background:rgba(255,255,255,0.06);color:#fff;border:1px solid rgba(255,255,255,0.1);flex:1;padding:8px;border-radius:12px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.05em';
+  doGenerate();
+}
+
+function doGenerate() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const seg = () => Array.from({length:4}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
+  const code = `${genPrefix}-${seg()}-${seg()}-${new Date().getFullYear()}`;
+  document.getElementById('genCode').textContent = code;
+}
+
+function openGenerateModal() {
+  doGenerate();
+  document.getElementById('modalGenerate').classList.add('open');
+}
+
+function copyGenCode() {
+  const code = document.getElementById('genCode').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    showToast('Código copiado. Úsalo en Nueva Licencia.', 'success');
+    document.getElementById('fCode').value = code;
+    closeModal('modalGenerate');
+    openAddModal();
+    document.getElementById('fCode').value = code;
+  });
+}
+
+// ── LOG ────────────────────────────────────────
+function addLog(msg) {
+  const logs = DB.get('adminLogs') || [];
+  logs.unshift({ msg, time: new Date().toISOString() });
+  DB.set('adminLogs', logs.slice(0, 100));
+  renderLog();
+}
+
+function renderLog() {
+  const logs = DB.get('adminLogs') || [];
+  const body = document.getElementById('logBody');
+  const empty = document.getElementById('logEmpty');
+  if (!logs.length) { body.innerHTML = ''; empty.style.display='block'; return; }
+  empty.style.display = 'none';
+  body.innerHTML = logs.slice(0,20).map(l => `
+    <div class="flex gap-3 items-start py-1">
+      <span class="mono text-[10px] text-gray-600 shrink-0">${new Date(l.time).toLocaleString('es-VE')}</span>
+      <span class="text-[11px] text-gray-400">${l.msg}</span>
+    </div>`).join('');
+}
+
+function clearLog() {
+  if (!confirm('¿Limpiar el log?')) return;
+  DB.set('adminLogs', []);
+  renderLog();
+}
+
+// ── MODAL ──────────────────────────────────────
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ── TOAST ──────────────────────────────────────
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.cssText = `display:block;background:${type==='success'?'#1a4fa0':type==='error'?'#ba1a1a':'#1a1b21'};color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:700;position:fixed;bottom:24px;right:24px;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,0.3)`;
+  setTimeout(() => { t.style.display = 'none'; }, 3000);
+}
+
+// ── KEYBOARD ───────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    ['modalAdd','modalGenerate'].forEach(id => closeModal(id));
+  }
+  if (e.key === 'Enter' && document.getElementById('adminLogin').style.display !== 'none') {
+    adminLogin();
+  }
+});
+
+// ── INIT ───────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  // Focus user input
+  document.getElementById('loginUser').focus();
+});
+</script>
+</body>
+</html>
