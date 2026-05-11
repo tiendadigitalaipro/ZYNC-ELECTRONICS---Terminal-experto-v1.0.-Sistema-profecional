@@ -1956,6 +1956,19 @@ let cart = [];
 let searchTimeout = null;
 let isPaying = false;
 
+function stockNum(v) {
+  const n = parseFloat(String(v ?? '0').replace(',', '.').replace(/[^0-9.\-]/g, ''));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function cartQtyForProduct(productId, excludeIndex = -1) {
+  return cart.reduce((total, item, idx) => {
+    if (idx === excludeIndex) return total;
+    const itemProductId = item.sourceProductId || item.id;
+    return itemProductId == productId ? total + stockNum(item.stockQty || item.qty) : total;
+  }, 0);
+}
+
 function posSearchProduct(q) {
   clearTimeout(searchTimeout);
   const res = document.getElementById('posSearchResults');
@@ -1994,18 +2007,19 @@ function posAddProduct(id) {
   const prods = DB.get('products') || [];
   const p = prods.find(x => x.id == id);
   if (!p) return;
-  const stock = parseFloat(p.stock) || 0;
-  const min = parseFloat(p.min) || 0;
+  const stock = stockNum(p.stock);
+  const min = stockNum(p.min);
   if (stock <= 0) { toast('Sin stock disponible', 'error'); return; }
   const idx = cart.findIndex(c => c.id == id);
+  const currentInCart = cartQtyForProduct(id);
+  const nextTotal = currentInCart + 1;
+  if (nextTotal > stock) { toast(`Stock insuficiente. Disponible: ${stock} · En carrito: ${currentInCart}`, 'error'); return; }
   if (idx >= 0) {
-    if ((cart[idx].qty + 1) > stock) { toast(`Stock insuficiente. Disponible: ${stock}`, 'error'); return; }
     cart[idx].qty++;
   } else {
     cart.push({ id: p.id, sku: p.sku, desc: p.desc, price: p.price, iva: p.iva, qty: 1 });
   }
-  const nextQty = idx >= 0 ? cart[idx].qty : 1;
-  const remaining = stock - nextQty;
+  const remaining = stock - nextTotal;
   if (remaining >= 0 && remaining <= min) toast(`Alerta: ${p.desc} quedará en stock mínimo (${remaining})`, 'info');
   document.getElementById('posSearch').value = '';
   document.getElementById('posSearchResults').classList.add('hidden');
@@ -2071,15 +2085,18 @@ function posRender() {
 }
 
 function posQty(i, delta) {
+  if (!cart[i]) return;
   if (delta > 0) {
     const prods = DB.get('products') || [];
-    const p = prods.find(x => x.id == cart[i].id);
+    const productId = cart[i].sourceProductId || cart[i].id;
+    const p = prods.find(x => x.id == productId);
     if (p) {
-      const stock = parseFloat(p.stock) || 0;
-      const min = parseFloat(p.min) || 0;
+      const stock = stockNum(p.stock);
+      const min = stockNum(p.min);
       const nextQty = cart[i].qty + delta;
-      if (nextQty > stock) { toast(`Stock insuficiente. Disponible: ${stock}`, 'error'); return; }
-      const remaining = stock - nextQty;
+      const nextTotal = cartQtyForProduct(productId, i) + nextQty;
+      if (nextTotal > stock) { toast(`Stock insuficiente. Disponible: ${stock} · En carrito: ${cartQtyForProduct(productId)}`, 'error'); return; }
+      const remaining = stock - nextTotal;
       if (remaining >= 0 && remaining <= min) toast(`Alerta: ${p.desc} quedará en stock mínimo (${remaining})`, 'info');
     }
   }
@@ -2120,12 +2137,16 @@ function posPaymentGroup(method) {
 
 function posValidateStock(items = cart) {
   const prods = DB.get('products') || [];
-  for (const c of items) {
+  const neededByProduct = {};
+  items.forEach(c => {
     const productId = c.sourceProductId || c.id;
+    neededByProduct[productId] = (neededByProduct[productId] || 0) + stockNum(c.stockQty || c.qty);
+  });
+  for (const productId of Object.keys(neededByProduct)) {
     const idx = prods.findIndex(p => p.id == productId);
     if (idx < 0) continue;
-    const deductQty = c.stockQty || c.qty;
-    if ((parseFloat(prods[idx].stock) || 0) < deductQty) {
+    const deductQty = neededByProduct[productId];
+    if (stockNum(prods[idx].stock) < deductQty) {
       return { ok:false, product: prods[idx], needed: deductQty };
     }
   }
@@ -2138,8 +2159,8 @@ function posApplyStock(items = cart) {
     const productId = c.sourceProductId || c.id;
     const idx = prods.findIndex(p => p.id == productId);
     if (idx >= 0) {
-      const deductQty = c.stockQty || c.qty;
-      prods[idx].stock = +(parseFloat(prods[idx].stock) - deductQty).toFixed(3);
+      const deductQty = stockNum(c.stockQty || c.qty);
+      prods[idx].stock = +(stockNum(prods[idx].stock) - deductQty).toFixed(3);
     }
   });
   DB.set('products', prods);
@@ -2151,8 +2172,8 @@ function posRestoreStock(items = []) {
     const productId = c.sourceProductId || c.id;
     const idx = prods.findIndex(p => p.id == productId);
     if (idx >= 0) {
-      const restoreQty = c.stockQty || c.qty;
-      prods[idx].stock = +(parseFloat(prods[idx].stock || 0) + restoreQty).toFixed(3);
+      const restoreQty = stockNum(c.stockQty || c.qty);
+      prods[idx].stock = +(stockNum(prods[idx].stock) + restoreQty).toFixed(3);
     }
   });
   DB.set('products', prods);
