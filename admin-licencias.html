@@ -261,7 +261,7 @@ body { font-family: 'Inter', sans-serif; background: #06060a; color: #e2e2e9; mi
     <div class="flex flex-col gap-3">
       <label class="flex flex-col gap-1">
         <span class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Código de Licencia</span>
-        <input id="fCode" type="text" placeholder="ZYNC-XXXX-XXXX-XXXX"
+        <input id="fCode" type="text" placeholder="Presiona Generar Código para crear una licencia real"
           class="mono px-4 py-3 rounded-xl text-sm outline-none uppercase tracking-widest"
           style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#fff"/>
       </label>
@@ -342,7 +342,7 @@ body { font-family: 'Inter', sans-serif; background: #06060a; color: #e2e2e9; mi
     <div class="flex flex-col gap-4">
       <!-- Tipo selector -->
       <div class="flex gap-2">
-        <button onclick="setGenPrefix('ZYNC')" id="gPro"
+        <button onclick="setGenPrefix('PRO')" id="gPro"
           class="flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-1.5"
           style="background:#D4AF37;color:#06060a">
           <span class="material-symbols-outlined fill-icon" style="font-size:14px;vertical-align:middle;">workspace_premium</span>
@@ -761,6 +761,7 @@ function saveLicense() {
   const id = document.getElementById('editId').value;
   const code = document.getElementById('fCode').value.trim().toUpperCase();
   if (!code || code.length < 10) { showToast('Código inválido', 'error'); return; }
+  if (code.includes('XXXX')) { showToast('Ese código es solo un ejemplo. Usa Generar Código para crear una licencia real.', 'error'); return; }
 
   const lic = {
     id: id || Date.now().toString(),
@@ -872,7 +873,7 @@ function copyCode(code) {
 }
 
 // ── CODE GENERATOR ─────────────────────────────
-let genPrefix = 'ZYNC';
+let genPrefix = 'PRO';
 let genDays = 0; // 0 = sin expiración (PRO), 5 = DEMO 5 días
 let genDeviceId = '';
 
@@ -883,7 +884,7 @@ const GEN_BTN_INACTIVE    = 'background:rgba(255,255,255,0.06);color:#fff;border
 function setGenPrefix(p) {
   genPrefix = p;
   genDays = p === 'DEMO' ? 5 : 0;
-  document.getElementById('gPro').style.cssText  = p === 'ZYNC' ? GEN_BTN_ACTIVE_GOLD : GEN_BTN_INACTIVE;
+  document.getElementById('gPro').style.cssText  = p === 'PRO' ? GEN_BTN_ACTIVE_GOLD : GEN_BTN_INACTIVE;
   document.getElementById('gDemo').style.cssText = p === 'DEMO' ? GEN_BTN_ACTIVE_RED  : GEN_BTN_INACTIVE;
   const demoInfo = document.getElementById('genDemoInfo');
   if (p === 'DEMO') {
@@ -908,7 +909,7 @@ async function doGenerate() {
 }
 
 function openGenerateModal() {
-  genPrefix = 'ZYNC'; genDays = 0; genDeviceId = getTargetDeviceId();
+  genPrefix = 'PRO'; genDays = 0; genDeviceId = getTargetDeviceId();
   if (!genDeviceId) { showToast('DEVICE ID obligatorio para generar licencias', 'error'); return; }
   document.getElementById('gPro').style.cssText  = GEN_BTN_ACTIVE_GOLD;
   document.getElementById('gDemo').style.cssText = GEN_BTN_INACTIVE;
