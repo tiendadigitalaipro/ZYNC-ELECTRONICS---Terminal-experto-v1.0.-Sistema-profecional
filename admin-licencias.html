@@ -342,28 +342,37 @@ body { font-family: 'Inter', sans-serif; background: #06060a; color: #e2e2e9; mi
     <div class="flex flex-col gap-4">
       <!-- Tipo selector -->
       <div class="flex gap-2">
-        <button onclick="setGenPrefix('PRO')" id="gPro"
-          class="flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-1.5"
-          style="background:#D4AF37;color:#06060a">
-          <span class="material-symbols-outlined fill-icon" style="font-size:14px;vertical-align:middle;">workspace_premium</span>
-          PRO
-        </button>
         <button onclick="setGenPrefix('DEMO')" id="gDemo"
           class="flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-1.5"
-          style="background:rgba(255,255,255,0.06);color:#fff;border:1px solid rgba(255,255,255,0.1)">
+          style="background:#ba1a1a;color:#fff">
           <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">timer</span>
           DEMO 5 DÍAS
         </button>
+        <button onclick="setGenPrefix('PRO')" id="gPro"
+          class="flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-1.5"
+          style="background:rgba(255,255,255,0.06);color:#fff;border:1px solid rgba(255,255,255,0.1)">
+          <span class="material-symbols-outlined fill-icon" style="font-size:14px;vertical-align:middle;">workspace_premium</span>
+          PRO
+        </button>
       </div>
 
-      <!-- Info DEMO — solo visible cuando DEMO está activo -->
-      <div id="genDemoInfo" style="display:none;background:rgba(186,26,26,0.08);border:1px dashed rgba(186,26,26,0.35);border-radius:12px;padding:12px;text-align:center;">
+      <!-- Info DEMO — visible cuando DEMO está activo -->
+      <div id="genDemoInfo" style="display:block;background:rgba(186,26,26,0.08);border:1px dashed rgba(186,26,26,0.35);border-radius:12px;padding:12px;text-align:center;">
         <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.25em;color:#ff8a80;margin-bottom:5px;">
-          <span class="material-symbols-outlined fill-icon" style="font-size:12px;vertical-align:middle;">timer_off</span>
-          Licencia de prueba — 5 días desde hoy
+          <span class="material-symbols-outlined fill-icon" style="font-size:12px;vertical-align:middle;">devices</span>
+          Funciona en cualquier dispositivo — 5 días
         </p>
         <p id="genDemoExpiry" style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#ff8a80;margin-bottom:4px;"></p>
-        <p style="font-size:9px;color:#555;line-height:1.5;">Al vencer, el sistema bloquea automáticamente<br>y solicita activar Licencia PRO</p>
+        <p style="font-size:9px;color:#555;line-height:1.5;">Código corto, fácil de enviar por WhatsApp.<br>No necesitas el Device ID del cliente.</p>
+      </div>
+
+      <!-- Info PRO — visible cuando PRO está activo -->
+      <div id="genProInfo" style="display:none;background:rgba(212,175,55,0.06);border:1px dashed rgba(212,175,55,0.35);border-radius:12px;padding:12px;text-align:center;">
+        <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.25em;color:#D4AF37;margin-bottom:5px;">
+          <span class="material-symbols-outlined fill-icon" style="font-size:12px;vertical-align:middle;">lock</span>
+          Licencia bloqueada al dispositivo — sin expiración
+        </p>
+        <p style="font-size:9px;color:#555;line-height:1.5;">Pide al cliente su <b style="color:#D4AF37">Device ID</b> (lo ve en pantalla de activación).<br>El código solo funcionará en ese equipo.</p>
       </div>
 
       <!-- Código generado -->
@@ -562,8 +571,26 @@ async function genDemoCode(deviceId) {
   return genSignedCode('DEMO', deviceId);
 }
 
+// DEMO simple sin device lock — funciona en cualquier dispositivo
+function genSimpleDemoCode() {
+  const seg = () => Array.from({length:4}, () => LIC_CHARS[Math.floor(Math.random()*32)]).join('');
+  const s1 = seg();
+  const dateEnc = encodeDay(daysEpoch());
+  return 'DEMO-' + s1 + '-' + dateEnc + '-' + licCheck(['DEMO', s1, dateEnc]);
+}
+
+function genSimpleProCode() {
+  const seg = () => Array.from({length:4}, () => LIC_CHARS[Math.floor(Math.random()*32)]).join('');
+  const s1 = seg(), s2 = seg();
+  return 'ZYNC-' + s1 + '-' + s2 + '-' + licCheck(['PRO', s1, s2]);
+}
+
 // ── LICENCIAS EMBEBIDAS (mirror del sistema) ──
 const EMBEDDED = [
+  { code:'ZYNC-DEMO-2026-FREE', type:'DEMO', name:'Demo Pública',          deviceId:'', expiresAt:'2026-12-31', status:'Activa' },
+  { code:'ZYNC-CWCJ-JH77-KTXX', type:'DEMO', name:'Demo Alternativa',      deviceId:'', expiresAt:'2026-12-31', status:'Activa' },
+  { code:'ZYNC-PRO1-A2K0-2026',  type:'PRO',  name:'Licencia PRO Estándar', deviceId:'', expiresAt:null,          status:'Activa' },
+  { code:'ZYNC-PRO2-ELEC-2026',  type:'PRO',  name:'Licencia PRO Electronics', deviceId:'', expiresAt:null,       status:'Activa' },
 ];
 
 // ── ADMIN AUTH ─────────────────────────────────
@@ -873,8 +900,8 @@ function copyCode(code) {
 }
 
 // ── CODE GENERATOR ─────────────────────────────
-let genPrefix = 'PRO';
-let genDays = 0; // 0 = sin expiración (PRO), 5 = DEMO 5 días
+let genPrefix = 'DEMO';
+let genDays = 5;
 let genDeviceId = '';
 
 const GEN_BTN_ACTIVE_GOLD = 'background:#D4AF37;color:#06060a;flex:1;padding:12px 8px;border-radius:12px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.05em;display:flex;align-items:center;justify-content:center;gap:6px;border:none;cursor:pointer;transition:all 0.15s';
@@ -887,33 +914,47 @@ function setGenPrefix(p) {
   document.getElementById('gPro').style.cssText  = p === 'PRO' ? GEN_BTN_ACTIVE_GOLD : GEN_BTN_INACTIVE;
   document.getElementById('gDemo').style.cssText = p === 'DEMO' ? GEN_BTN_ACTIVE_RED  : GEN_BTN_INACTIVE;
   const demoInfo = document.getElementById('genDemoInfo');
+  const proInfo  = document.getElementById('genProInfo');
   if (p === 'DEMO') {
     const exp = new Date(); exp.setDate(exp.getDate() + 5);
     document.getElementById('genDemoExpiry').textContent =
       'Vence: ' + exp.toLocaleDateString('es-VE', {day:'2-digit', month:'long', year:'numeric'});
     demoInfo.style.display = 'block';
+    if (proInfo) proInfo.style.display = 'none';
   } else {
     demoInfo.style.display = 'none';
+    if (proInfo) proInfo.style.display = 'block';
   }
   doGenerate();
 }
 
 async function doGenerate() {
-  if (!genDeviceId) {
-    genDeviceId = getTargetDeviceId();
-    if (!genDeviceId) { showToast('DEVICE ID obligatorio para generar licencias', 'error'); return; }
+  if (genPrefix === 'DEMO') {
+    // DEMO: no requiere Device ID — funciona en cualquier dispositivo
+    document.getElementById('genCode').textContent = genSimpleDemoCode();
+  } else {
+    // PRO: requiere Device ID del cliente — genera licencia firmada
+    if (!genDeviceId) {
+      const did = prompt('Pega el DEVICE ID exacto del cliente (lo ve en su pantalla de activación):');
+      if (!did || !did.trim()) { showToast('Debes ingresar el Device ID del cliente para PRO', 'error'); return; }
+      genDeviceId = did.trim().toUpperCase();
+    }
+    document.getElementById('genCode').textContent = 'Generando firma segura...';
+    const code = await genProCode(genDeviceId);
+    document.getElementById('genCode').textContent = code;
   }
-  document.getElementById('genCode').textContent = 'Generando firma segura...';
-  const code = genPrefix === 'DEMO' ? await genDemoCode(genDeviceId) : await genProCode(genDeviceId);
-  document.getElementById('genCode').textContent = code;
 }
 
 function openGenerateModal() {
-  genPrefix = 'PRO'; genDays = 0; genDeviceId = getTargetDeviceId();
-  if (!genDeviceId) { showToast('DEVICE ID obligatorio para generar licencias', 'error'); return; }
-  document.getElementById('gPro').style.cssText  = GEN_BTN_ACTIVE_GOLD;
-  document.getElementById('gDemo').style.cssText = GEN_BTN_INACTIVE;
-  document.getElementById('genDemoInfo').style.display = 'none';
+  genPrefix = 'DEMO'; genDays = 5; genDeviceId = '';
+  document.getElementById('gPro').style.cssText  = GEN_BTN_INACTIVE;
+  document.getElementById('gDemo').style.cssText = GEN_BTN_ACTIVE_RED;
+  const exp = new Date(); exp.setDate(exp.getDate() + 5);
+  document.getElementById('genDemoExpiry').textContent =
+    'Vence: ' + exp.toLocaleDateString('es-VE', {day:'2-digit', month:'long', year:'numeric'});
+  document.getElementById('genDemoInfo').style.display = 'block';
+  const proInfo = document.getElementById('genProInfo');
+  if (proInfo) proInfo.style.display = 'none';
   doGenerate();
   document.getElementById('modalGenerate').classList.add('open');
 }
@@ -934,7 +975,9 @@ function copyGenCode() {
       if (datePart && datePart !== 'LIFE') {
         let n = 0;
         for (const c of datePart) n = n * 32 + LIC_CHARS.indexOf(c);
-        const exp = new Date(n * 86400000);
+        // ZSG: parts[4] ya es el día de expiración; DEMO simple: parts[2] es creación, +5 = expiración
+        const expiryDay = code.startsWith('ZSG-DEMO-') ? n : n + 5;
+        const exp = new Date(expiryDay * 86400000);
         document.getElementById('fExpiry').value = exp.toISOString().split('T')[0];
       }
     } else {

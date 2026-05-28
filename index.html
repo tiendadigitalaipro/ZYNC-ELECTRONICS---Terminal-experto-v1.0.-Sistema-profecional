@@ -1702,6 +1702,10 @@ const DB = {
 
 // ── LICENCIAS EMBEBIDAS ───────────────────────
 const LICENSES = [
+  { code:'ZYNC-DEMO-2026-FREE', type:'DEMO', name:'Demo Pública', deviceId:'', expiresAt:'2026-12-31', status:'Activa' },
+  { code:'ZYNC-CWCJ-JH77-KTXX', type:'DEMO', name:'Demo Alternativa', deviceId:'', expiresAt:'2026-12-31', status:'Activa' },
+  { code:'ZYNC-PRO1-A2K0-2026', type:'PRO',  name:'Licencia PRO Estándar', deviceId:'', expiresAt:null, status:'Activa' },
+  { code:'ZYNC-PRO2-ELEC-2026', type:'PRO',  name:'Licencia PRO Electronics', deviceId:'', expiresAt:null, status:'Activa' },
 ];
 
 // ── DEVICE ID ─────────────────────────────────
@@ -1814,16 +1818,16 @@ function validateLicCode(code) {
   const p = code.split('-');
   if (p.length !== 4) return null;
   if (p[0] === 'ZYNC') {
-    if (p[3] !== licCheck(['PRO', p[1], p[2], DEVICE_ID])) return null;
-    return { code, type:'PRO', name:'Licencia PRO', deviceId:DEVICE_ID, expiresAt:null, status:'Activa' };
+    if (p[3] !== licCheck(['PRO', p[1], p[2]])) return null;
+    return { code, type:'PRO', name:'Licencia PRO', deviceId:'', expiresAt:null, status:'Activa' };
   }
   if (p[0] === 'DEMO') {
-    if (p[3] !== licCheck(['DEMO', p[1], p[2], DEVICE_ID])) return null;
+    if (p[3] !== licCheck(['DEMO', p[1], p[2]])) return null;
     const createdDay = decodeDay(p[2]);
     const expiresDay = createdDay + 5;
     const expiresAt  = new Date(expiresDay * 86400000).toISOString().split('T')[0];
-    if (daysEpoch() > expiresDay) return { code, type:'DEMO', name:'Demo 5 Días', deviceId:DEVICE_ID, expiresAt, status:'Expirada' };
-    return { code, type:'DEMO', name:'Demo 5 Días', deviceId:DEVICE_ID, expiresAt, status:'Activa' };
+    if (daysEpoch() > expiresDay) return { code, type:'DEMO', name:'Demo 5 Días', deviceId:'', expiresAt, status:'Expirada' };
+    return { code, type:'DEMO', name:'Demo 5 Días', deviceId:'', expiresAt, status:'Activa' };
   }
   return null;
 }
