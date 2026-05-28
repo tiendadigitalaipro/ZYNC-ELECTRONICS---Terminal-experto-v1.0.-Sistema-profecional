@@ -340,6 +340,23 @@ body { font-family: 'Inter', sans-serif; background: #06060a; color: #e2e2e9; mi
       </button>
     </div>
     <div class="flex flex-col gap-4">
+      <!-- Device ID del cliente — siempre visible -->
+      <div style="background:rgba(212,175,55,0.06);border:1px solid rgba(212,175,55,0.2);border-radius:14px;padding:14px;">
+        <p style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;color:#D4AF37;margin-bottom:8px;display:flex;align-items:center;gap:5px;">
+          <span class="material-symbols-outlined fill-icon" style="font-size:13px;">smartphone</span>
+          Device ID del cliente <span style="color:#ff8a80">*obligatorio</span>
+        </p>
+        <input id="genDeviceInput" type="text" placeholder="Ej: ABC-DEF-GHJ  (el cliente lo ve en su pantalla)"
+          class="mono w-full px-3 py-2.5 rounded-xl text-sm outline-none uppercase"
+          style="background:rgba(255,255,255,0.06);border:1px solid rgba(212,175,55,0.3);color:#fff;letter-spacing:0.1em"
+          oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9\-]/g,'')"
+          onkeyup="genDeviceId=this.value.trim(); if(genDeviceId.length>=3) doGenerate()"/>
+        <p style="font-size:9px;color:#666;margin-top:5px;">
+          <span class="material-symbols-outlined" style="font-size:10px;vertical-align:middle;">info</span>
+          El cliente abre el sistema → pantalla de activación → ve su <b style="color:#aaa">Tu Device ID</b>
+        </p>
+      </div>
+
       <!-- Tipo selector -->
       <div class="flex gap-2">
         <button onclick="setGenPrefix('DEMO')" id="gDemo"
@@ -359,20 +376,20 @@ body { font-family: 'Inter', sans-serif; background: #06060a; color: #e2e2e9; mi
       <!-- Info DEMO — visible cuando DEMO está activo -->
       <div id="genDemoInfo" style="display:block;background:rgba(186,26,26,0.08);border:1px dashed rgba(186,26,26,0.35);border-radius:12px;padding:12px;text-align:center;">
         <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.25em;color:#ff8a80;margin-bottom:5px;">
-          <span class="material-symbols-outlined fill-icon" style="font-size:12px;vertical-align:middle;">devices</span>
-          Funciona en cualquier dispositivo — 5 días
+          <span class="material-symbols-outlined fill-icon" style="font-size:12px;vertical-align:middle;">timer_off</span>
+          Prueba 5 días · bloqueada al device del cliente
         </p>
         <p id="genDemoExpiry" style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#ff8a80;margin-bottom:4px;"></p>
-        <p style="font-size:9px;color:#555;line-height:1.5;">Código corto, fácil de enviar por WhatsApp.<br>No necesitas el Device ID del cliente.</p>
+        <p style="font-size:9px;color:#555;line-height:1.5;">Código corto, fácil de enviar por WhatsApp.<br>Solo funciona en el equipo del cliente.</p>
       </div>
 
       <!-- Info PRO — visible cuando PRO está activo -->
       <div id="genProInfo" style="display:none;background:rgba(212,175,55,0.06);border:1px dashed rgba(212,175,55,0.35);border-radius:12px;padding:12px;text-align:center;">
         <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.25em;color:#D4AF37;margin-bottom:5px;">
-          <span class="material-symbols-outlined fill-icon" style="font-size:12px;vertical-align:middle;">lock</span>
-          Licencia bloqueada al dispositivo — sin expiración
+          <span class="material-symbols-outlined fill-icon" style="font-size:12px;vertical-align:middle;">workspace_premium</span>
+          Licencia PRO · permanente · solo ese dispositivo
         </p>
-        <p style="font-size:9px;color:#555;line-height:1.5;">Pide al cliente su <b style="color:#D4AF37">Device ID</b> (lo ve en pantalla de activación).<br>El código solo funcionará en ese equipo.</p>
+        <p style="font-size:9px;color:#555;line-height:1.5;">El código estará firmado criptográficamente.<br>No expira nunca y no se puede transferir.</p>
       </div>
 
       <!-- Código generado -->
@@ -571,18 +588,13 @@ async function genDemoCode(deviceId) {
   return genSignedCode('DEMO', deviceId);
 }
 
-// DEMO simple sin device lock — funciona en cualquier dispositivo
-function genSimpleDemoCode() {
+// DEMO con device lock — solo funciona en el dispositivo del cliente
+function genSimpleDemoCode(deviceId) {
   const seg = () => Array.from({length:4}, () => LIC_CHARS[Math.floor(Math.random()*32)]).join('');
   const s1 = seg();
   const dateEnc = encodeDay(daysEpoch());
-  return 'DEMO-' + s1 + '-' + dateEnc + '-' + licCheck(['DEMO', s1, dateEnc]);
-}
-
-function genSimpleProCode() {
-  const seg = () => Array.from({length:4}, () => LIC_CHARS[Math.floor(Math.random()*32)]).join('');
-  const s1 = seg(), s2 = seg();
-  return 'ZYNC-' + s1 + '-' + s2 + '-' + licCheck(['PRO', s1, s2]);
+  const did = (deviceId || '').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  return 'DEMO-' + s1 + '-' + dateEnc + '-' + licCheck(['DEMO', s1, dateEnc, did]);
 }
 
 // ── LICENCIAS EMBEBIDAS (mirror del sistema) ──
@@ -929,16 +941,20 @@ function setGenPrefix(p) {
 }
 
 async function doGenerate() {
+  const deviceInput = document.getElementById('genDeviceInput');
+  genDeviceId = deviceInput ? deviceInput.value.trim().toUpperCase() : genDeviceId;
+  const did = genDeviceId.replace(/[^A-Z0-9]/g, '');
+
+  if (!did || did.length < 6) {
+    document.getElementById('genCode').textContent = '— Ingresa el Device ID del cliente —';
+    document.getElementById('genCode').style.fontSize = '11px';
+    return;
+  }
+  document.getElementById('genCode').style.fontSize = '';
+
   if (genPrefix === 'DEMO') {
-    // DEMO: no requiere Device ID — funciona en cualquier dispositivo
-    document.getElementById('genCode').textContent = genSimpleDemoCode();
+    document.getElementById('genCode').textContent = genSimpleDemoCode(genDeviceId);
   } else {
-    // PRO: requiere Device ID del cliente — genera licencia firmada
-    if (!genDeviceId) {
-      const did = prompt('Pega el DEVICE ID exacto del cliente (lo ve en su pantalla de activación):');
-      if (!did || !did.trim()) { showToast('Debes ingresar el Device ID del cliente para PRO', 'error'); return; }
-      genDeviceId = did.trim().toUpperCase();
-    }
     document.getElementById('genCode').textContent = 'Generando firma segura...';
     const code = await genProCode(genDeviceId);
     document.getElementById('genCode').textContent = code;
@@ -955,7 +971,11 @@ function openGenerateModal() {
   document.getElementById('genDemoInfo').style.display = 'block';
   const proInfo = document.getElementById('genProInfo');
   if (proInfo) proInfo.style.display = 'none';
-  doGenerate();
+  // Limpiar campo de Device ID
+  const deviceInput = document.getElementById('genDeviceInput');
+  if (deviceInput) deviceInput.value = '';
+  document.getElementById('genCode').textContent = '— Ingresa el Device ID del cliente —';
+  document.getElementById('genCode').style.fontSize = '11px';
   document.getElementById('modalGenerate').classList.add('open');
 }
 

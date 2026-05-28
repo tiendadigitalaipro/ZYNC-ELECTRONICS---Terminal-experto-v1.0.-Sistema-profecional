@@ -1817,17 +1817,19 @@ async function validateLicCodeAsync(code) {
 function validateLicCode(code) {
   const p = code.split('-');
   if (p.length !== 4) return null;
+  // Normalizar Device ID igual que el panel admin: solo alfanumérico sin guiones
+  const did = DEVICE_ID.replace(/[^A-Z0-9]/g, '');
   if (p[0] === 'ZYNC') {
-    if (p[3] !== licCheck(['PRO', p[1], p[2]])) return null;
-    return { code, type:'PRO', name:'Licencia PRO', deviceId:'', expiresAt:null, status:'Activa' };
+    if (p[3] !== licCheck(['PRO', p[1], p[2], did])) return null;
+    return { code, type:'PRO', name:'Licencia PRO', deviceId:DEVICE_ID, expiresAt:null, status:'Activa' };
   }
   if (p[0] === 'DEMO') {
-    if (p[3] !== licCheck(['DEMO', p[1], p[2]])) return null;
+    if (p[3] !== licCheck(['DEMO', p[1], p[2], did])) return null;
     const createdDay = decodeDay(p[2]);
     const expiresDay = createdDay + 5;
     const expiresAt  = new Date(expiresDay * 86400000).toISOString().split('T')[0];
-    if (daysEpoch() > expiresDay) return { code, type:'DEMO', name:'Demo 5 Días', deviceId:'', expiresAt, status:'Expirada' };
-    return { code, type:'DEMO', name:'Demo 5 Días', deviceId:'', expiresAt, status:'Activa' };
+    if (daysEpoch() > expiresDay) return { code, type:'DEMO', name:'Demo 5 Días', deviceId:DEVICE_ID, expiresAt, status:'Expirada' };
+    return { code, type:'DEMO', name:'Demo 5 Días', deviceId:DEVICE_ID, expiresAt, status:'Activa' };
   }
   return null;
 }
