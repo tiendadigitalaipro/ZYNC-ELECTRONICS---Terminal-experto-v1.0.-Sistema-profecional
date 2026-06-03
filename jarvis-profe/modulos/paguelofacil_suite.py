@@ -10,7 +10,7 @@ import requests
 # Reemplaza estos valores con tus credenciales reales antes de usar en producción.
 CCLW              = os.getenv("PAGUELOFACIL_CCLW",            "TU_CCLW_AQUI")
 ACCESS_TOKEN      = os.getenv("PAGUELOFACIL_TOKEN",           "TU_TOKEN_AQUI")
-BASE_URL          = os.getenv("PAGUELOFACIL_BASE_URL",        "https://secure.paguelofacil.com")
+BASE_URL          = os.getenv("PAGUELOFACIL_BASE_URL",        "https://api.paguelofacil.com")
 _ENDPOINT_COBRO   = os.getenv("PAGUELOFACIL_ENDPOINT_COBRO",  "/rest/main.cgi/ProcessTx")
 _ENDPOINT_STATUS  = os.getenv("PAGUELOFACIL_ENDPOINT_STATUS", "/rest/main.cgi/getPayInfo")
 
