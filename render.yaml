@@ -1,0 +1,14 @@
+services:
+  - type: worker
+    name: zync-telegram-bot
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python start.py
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: DEEPSEEK_API_KEY
+        sync: false
+    # Ensure only one instance runs (prevents 409 Conflict)
+    numInstances: 1
